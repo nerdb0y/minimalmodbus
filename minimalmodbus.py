@@ -56,6 +56,11 @@ _BYTEPOSITION_FOR_FUNCTIONCODE = 1  # Relative to (stripped) response
 _BYTEPOSITION_FOR_SLAVE_ERROR_CODE = 2  # Relative to (stripped) response
 _BITNUMBER_FUNCTIONCODE_ERRORINDICATION = 7
 
+_BITTIMES_PER_CHARACTERTIME = 11
+_MINIMUM_SILENT_CHARACTERTIMES = 3.5
+_MINIMUM_SILENT_TIME_SECONDS = 0.00175  # See Modbus standard
+_CHECK_SLAVE_RETURN_ADDRESS = True
+
 # Several instrument instances can share the same serialport
 _serialports = {}  # Key: port name (str), value: port instance
 _latest_read_times = {}  # Key: port name (str), value: timestamp (float)
@@ -1758,7 +1763,7 @@ def _extract_payload(response, slaveaddress, mode, functioncode):
     # Check slave address
     responseaddress = ord(response[_BYTEPOSITION_FOR_SLAVEADDRESS])
 
-    if responseaddress != slaveaddress:
+    if _CHECK_SLAVE_RETURN_ADDRESS and responseaddress != slaveaddress:
         raise InvalidResponseError(
             "Wrong return slave address: {} instead of {}. The response is: {!r}".format(
                 responseaddress, slaveaddress, response
@@ -1890,14 +1895,11 @@ def _calculate_minimum_silent_period(baudrate):
     # Avoid division by zero
     _check_numerical(baudrate, minvalue=1, description="baudrate")
 
-    BITTIMES_PER_CHARACTERTIME = 11
-    MINIMUM_SILENT_CHARACTERTIMES = 3.5
-    MINIMUM_SILENT_TIME_SECONDS = 0.00175  # See Modbus standard
 
     bittime = 1 / float(baudrate)
     return max(
-        bittime * BITTIMES_PER_CHARACTERTIME * MINIMUM_SILENT_CHARACTERTIMES,
-        MINIMUM_SILENT_TIME_SECONDS,
+        bittime * _BITTIMES_PER_CHARACTERTIME * _MINIMUM_SILENT_CHARACTERTIMES,
+        _MINIMUM_SILENT_TIME_SECONDS,
     )
 
 
